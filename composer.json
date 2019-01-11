@@ -1,0 +1,12 @@
+{
+    "name": "devskyfly/yii-module-tools",
+    "type": "module",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Ivan",
+            "email": "devskyfly@gmail.com"
+        }
+    ],
+    "require": {}
+}

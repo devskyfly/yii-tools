@@ -277,7 +277,7 @@ class DbController extends Controller
         $filtered_tables=[];
         
         if(!Str::isString($match)){
-            throw new \InvalidArgumentException("Parameter");
+            throw new \InvalidArgumentException('Parameter $match is not string type.');
         }      
         $tables=$this->schema->getTableNames();
         if(Vrbl::isEmpty($match)){
@@ -285,35 +285,43 @@ class DbController extends Controller
         }  
         
         $fnc=function($value){
-            print_r($value);
             return trim($value);
         };
         
-        $exploded_tables=explode(",", $match);      
-        $exploded_tables=array_map($fnc,$exploded_tables);
-        
-        if(!Vrbl::isEmpty($exploded_tables)){
-            $arr=array_intersect($exploded_tables, $tables);
-            foreach ($arr as $table){
-                $filtered_tables[]=$table;
-            }
-            return $filtered_tables;
-        }
-        
-        if(preg_match("/^.*_$/", $match)){
-            foreach ($tables as $table){
-                if(preg_match("/^{$match}.*/", $table)) $filtered_tables[]=$table;
-            }
-            return $filtered_tables;
-        }else{
-            foreach ($tables as $table){
-                if($match==$table) {
-                    $filtered_tables[]=$table;
-                    break;
+        if(!preg_match("/^.*,.*$/", $match)){
+            if(preg_match("/^.*_$/", $match)){
+                foreach ($tables as $table){
+                    if(preg_match("/^{$match}.*/", $table)) $filtered_tables[]=$table;
                 }
+                return $filtered_tables;
+            }else{
+                foreach ($tables as $table){
+                    if($match==$table) {
+                        $filtered_tables[]=$table;
+                        break;
+                    }
+                }
+                return $filtered_tables;
             }
-            return $filtered_tables;
+        }else{
+            //By comma
+            $exploded_tables=explode(",", $match);
+            $exploded_tables=array_map($fnc,$exploded_tables);
+            if(!Vrbl::isEmpty($exploded_tables)){
+                $arr=array_intersect($exploded_tables, $tables);
+                foreach ($arr as $table){
+                    $filtered_tables[]=$table;
+                }
+                return $filtered_tables;
+            }
         }
+       
+        
+        //BaseConsole::stdout(print_r($exploded_tables,true).PHP_EOL);
+        
+        
+        
+        
         
     }
 }

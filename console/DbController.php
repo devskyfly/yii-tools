@@ -9,6 +9,7 @@ use yii\console\ExitCode;
 use yii\db\Migration;
 use yii\helpers\BaseConsole;
 use devskyfly\php56\libs\fileSystem\Dirs;
+use devskyfly\php56\libs\fileSystem\Files;
 
 /**
  * 
@@ -55,28 +56,7 @@ class DbController extends Controller
     public function actionDump($file_path)
     {
         try{
-            if(Vrbl::isEmpty($file_path)){
-                throw new \InvalidArgumentException('Parameter $file_path is empty');
-            }
-            
-            $dir=dirname($file_path); 
-            $file=basename($file_path);
-            if($dir[0]=='.'){
-                $dir=realpath(Yii::getAlias('@app/'.$dir));
-                if(Vrbl::isEmpty($dir)){
-                    throw new \RuntimeException("Directory does not exist.");
-                }
-            }
-            
-            if(!Dirs::isDir($dir)){
-                throw new \RuntimeException("Directory {$dir} is not dir.");
-            }
-            if(!Dirs::dirExists($dir)){
-                throw new \RuntimeException("Directory {$dir} does not exist.");
-            }
-            
-            $file_path=$dir.'/'.$file;
-            
+            //Select tables
             $match=BaseConsole::prompt($this->tables_prompt_msg);
             $tables=$this->getTables($match);
             
@@ -93,25 +73,53 @@ class DbController extends Controller
             
             $str_tables=implode(' ', $tables);
             
-            BaseConsole::stdout($file_path.PHP_EOL);
+            //File
+            if(Vrbl::isEmpty($file_path)){
+                throw new \InvalidArgumentException('Parameter $file_path is empty');
+            } 
             
+            if(Dirs::isDir($file_path)){
+                throw new \RuntimeException("{Path '{$file_path}' is not a file.");
+            }
+            
+            $dir=dirname($file_path);
+            $file=basename($file_path);
+            
+            if(empty($file)){
+                throw \RuntimeException('File name is empty.');
+            }
+            
+            if(!Dirs::isDir($dir)){
+                throw new \RuntimeException("Directory {$dir} is not dir.");
+            }
+            if(!Dirs::dirExists($dir)){
+                throw new \RuntimeException("Directory {$dir} does not exist.");
+            }
+            
+            if(Files::fileExists($file_path)){
+                if(!BaseConsole::prompt(PHP_EOL."File '{$file_path}' all ready exists.".PHP_EOL."Do you want to overwrite it?")){
+                    return ExitCode::OK;
+                }
+            }
+                 
+            //Dump
             $out_put=[];
             $return_value=0;
             exec("mysqldump -u{$user} -p{$pass} -h{$host} {$db} {$str_tables} > {$file_path}",$out_put,$return_value);
-
-            if($return_value!=ExitCode::OK){
-                //BaseConsole::stdout($out_put);
-            }else{
+            
+            if($return_value!==ExitCode::OK){
                 throw new \RuntimeException("Dump failed. Execution of cmd 'exec' return :".
                     PHP_EOL.implode(PHP_EOL, $out_put).PHP_EOL);
             }
+            BaseConsole::stdout("Dumped in {$file_path}.".PHP_EOL);
+            
         }catch (\Exception $e){
-            BaseConsole::stdout($e->getMessage());
+            BaseConsole::stdout($e->getMessage().PHP_EOL.$e->getTraceAsString());
             BaseConsole::stdout(PHP_EOL);
             return ExitCode::UNSPECIFIED_ERROR;
         }
         catch (\Throwable $e){
-            BaseConsole::stdout($e->getMessage());
+            BaseConsole::stdout($e->getMessage().PHP_EOL.$e->getTraceAsString());
             BaseConsole::stdout(PHP_EOL);
             return ExitCode::UNSPECIFIED_ERROR;
         }
@@ -232,13 +240,13 @@ class DbController extends Controller
             } 
             $trn->commit();
         }catch (\Exception $e){
-            BaseConsole::stdout($e->getMessage());
+            BaseConsole::stdout($e->getMessage().PHP_EOL.$e->getTraceAsString());
             BaseConsole::stdout(PHP_EOL);
             $trn->rollBack();
             return ExitCode::UNSPECIFIED_ERROR;
         }
         catch (\Throwable $e){
-            BaseConsole::stdout($e->getMessage());
+            BaseConsole::stdout($e->getMessage().PHP_EOL.$e->getTraceAsString());
             BaseConsole::stdout(PHP_EOL);
             $trn->rollBack();
             return ExitCode::UNSPECIFIED_ERROR;
@@ -315,13 +323,5 @@ class DbController extends Controller
                 return $filtered_tables;
             }
         }
-       
-        
-        //BaseConsole::stdout(print_r($exploded_tables,true).PHP_EOL);
-        
-        
-        
-        
-        
     }
 }

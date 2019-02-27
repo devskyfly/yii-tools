@@ -18,14 +18,18 @@ use devskyfly\php56\libs\fileSystem\Files;
  */
 class DbController extends Controller
 { 
+    public $tables;
+    
     protected $db=null;
     protected $schema=null;
     protected $tables_prompt_msg="";
 
-    /* public function options($actionID)
+    public function options($actionID)
     {
-        
-    } */
+        $options=[];
+        $options[]="tables";
+        return $options;
+    }
     
     public function init()
     {
@@ -41,8 +45,21 @@ class DbController extends Controller
      */
     public function actionIndex()
     {
-        $prefix=BaseConsole::prompt($this->tables_prompt_msg);
-        $tables=$this->getTables($prefix);
+        $interactive_mode=true;
+        
+        //Select tables
+        if(Vrbl::isEmpty($this->tables)){
+            $match=BaseConsole::prompt($this->tables_prompt_msg);
+        }else{
+            if($this->tables=="*"){
+                $match="";
+            }else{
+                $match=$this->tables;
+            }
+            $interactive_mode=false;
+        }
+        
+        $tables=$this->getTables($match);
         $this->showTables($tables);
         return ExitCode::OK;
     }
@@ -56,8 +73,20 @@ class DbController extends Controller
     public function actionDump($file_path)
     {
         try{
+            $interactive_mode=true;
+            
             //Select tables
-            $match=BaseConsole::prompt($this->tables_prompt_msg);
+            if(Vrbl::isEmpty($this->tables)){
+                $match=BaseConsole::prompt($this->tables_prompt_msg);
+            }else{
+                if($this->tables=="*"){
+                    $match="";
+                }else{
+                    $match=$this->tables;
+                }
+                $interactive_mode=false;
+            }
+            
             $tables=$this->getTables($match);
             
             $i=0;
@@ -96,7 +125,8 @@ class DbController extends Controller
                 throw new \RuntimeException("Directory {$dir} does not exist.");
             }
             
-            if(Files::fileExists($file_path)){
+            if($interactive_mode
+                &&Files::fileExists($file_path)){
                 if(!BaseConsole::prompt(PHP_EOL."File '{$file_path}' all ready exists.".PHP_EOL."Do you want to overwrite it?")){
                     return ExitCode::OK;
                 }
@@ -204,7 +234,7 @@ class DbController extends Controller
      * @param string $console_text
      * @return number
      */
-    protected function execute($callback,$console_text)
+    protected function execute($callback,$console_text,$interactive=true)
     {
         if(!Str::isString($console_text)){
             throw new \InvalidArgumentException('Parameter $console_text is not string type.');
@@ -215,16 +245,32 @@ class DbController extends Controller
         }
         
         $migration=new Migration();
-        $match=BaseConsole::prompt($this->tables_prompt_msg);
+   
+        $interactive_mode=true;
+        
+        //Select tables
+        if(Vrbl::isEmpty($this->tables)){
+            $match=BaseConsole::prompt($this->tables_prompt_msg);
+        }else{
+            if($this->tables=="*"){
+                $match="";
+            }else{
+                $match=$this->tables;
+            }
+            $interactive_mode=false;
+        }
+        
         $tables=$this->getTables($match);
         $this->showTables($tables);
         
-        if(!BaseConsole::confirm("Do you realy want to execute this command on this tables?".PHP_EOL)){
+        if($interactive_mode
+            &&(!BaseConsole::confirm("Do you realy want to execute this command on this tables?".PHP_EOL))){
             BaseConsole::stdout("Operation was terminated.".PHP_EOL);
             return ExitCode::OK;
         }
         
-        if(!BaseConsole::confirm("Are you sure?")){
+        if($interactive_mode
+            &&(!BaseConsole::confirm("Are you sure?"))){
             BaseConsole::stdout("Operation was terminated.".PHP_EOL);
             return ExitCode::OK;
         }

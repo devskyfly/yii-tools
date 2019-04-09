@@ -72,6 +72,7 @@ class DbController extends Controller
      */
     public function actionDump($file_path)
     {
+        $file_path=realpath($file_path);
         try{
             $interactive_mode=true;
             

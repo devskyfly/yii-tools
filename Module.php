@@ -11,6 +11,7 @@ class Module extends \yii\base\Module
     {
         parent::init();
         //$this->checkProperties();
+        Yii::setAlias("@devskyfly/yiiModuleTools", __DIR__);
         if(Yii::$app instanceof \yii\console\Application){
             $this->controllerNamespace='devskyfly\yiiModuleTools\console';
         }
